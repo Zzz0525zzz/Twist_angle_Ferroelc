@@ -1,0 +1,470 @@
+# =========================================================
+# Twisted BaTiO3 bilayer: controlled load-unload-separation coupling test
+#
+# Purpose:
+#   Test whether the twist-encoded / pressure-reweighted interfacial
+#   polar-mechanical texture survives unloading and controlled interface
+#   separation.
+#
+# Current interpretation boundary:
+#   - twist is treated as the geometric origin of the interfacial moire
+#     polar-mechanical texture;
+#   - normal pressure is treated as a tuning / amplification / stabilization
+#     variable, not as the fundamental origin of the texture;
+#   - after separation, the former interface layers can become new exposed
+#     surfaces, so layer-resolved post-processing must be interpreted carefully.
+#
+# Physical loading path:
+#   1) read atomic.data;
+#   2) small conservative pre-relaxation, with no dump output;
+#   3) reset timestep only once, after pre-relaxation;
+#   4) start full-path dump from the post-pre-relax 0 GPa reference state;
+#   5) ramp 0 -> 12 GPa by symmetric surface traction;
+#   6) hold at 12 GPa;
+#   7) unload 12 -> 0 GPa by symmetric surface traction;
+#   8) hold at 0 GPa;
+#   9) controlled separation using an equal-and-opposite COM-separation
+#      spring restraint, instead of one-shot displace_atoms.
+#
+# Main outputs:
+#   twist_bto_coupling_controlled_start.data
+#   twist_bto_coupling_controlled_prerelax.data
+#   twist_bto_coupling_controlled_ramp_to_P12.data
+#   twist_bto_coupling_controlled_P12_hold.data
+#   twist_bto_coupling_controlled_unload_to_P0.data
+#   twist_bto_coupling_controlled_P0_hold.data
+#   twist_bto_coupling_controlled_sepXX_hold.data
+#   twist_bto_coupling_controlled_Path.*.dump
+# =========================================================
+
+# ------------------------ INITIALIZATION ----------------------------
+units           metal
+dimension       3
+boundary        p p f
+atom_style      full
+atom_modify     map yes
+
+timestep        0.0001
+
+variable        DATAIN    string atomic.data
+variable        CASE      string twist_bto_coupling_controlled
+
+# Keep large z vacuum to remove the z-periodic fake interface.
+variable        ZLOBOX    equal 0.0
+variable        ZHIBOX    equal 130.0
+
+# ------------------------ PATH PARAMETERS ----------------------------
+# timestep = 0.0001 ps in metal units.
+# 30000 steps -> 3 ps; 50000 steps -> 5 ps.
+variable        PTARGET_GPa        equal 12.0
+variable        RAMP_LOAD_STEPS    equal 30000
+variable        HOLD_P12_STEPS     equal 50000
+variable        RAMP_UNLOAD_STEPS  equal 30000
+variable        HOLD_P0_STEPS      equal 30000
+
+# Controlled separation parameters.
+# Each separation level increases the target upper-lower COM separation by 2 A.
+# For a faster test, reduce SEP_RAMP_STEPS and SEP_HOLD_STEPS, but avoid very
+# abrupt separation because it becomes a shock-like perturbation.
+variable        SEP_STEP_A         equal 2.0
+variable        SEP_RAMP_STEPS     equal 20000
+variable        SEP_HOLD_STEPS     equal 30000
+variable        KSEP_COM           equal 200.0     # eV/A^2, total COM-separation spring stiffness
+
+# Unit conversion: 1 eV/A^3 = 160.21766208 GPa.
+variable        GPa_per_eVA3       equal 160.21766208
+
+variable        Tstart             equal 5.0
+variable        Tstop              equal 5.0
+variable        Tdamp              equal 0.05
+variable        THERMO             equal 1000
+variable        DUMPINT            equal 5000
+
+# Absolute step offsets for continuous-time ramp variables.
+# No reset_timestep is used after the formal loading path begins.
+variable        STEP_LOAD_START    equal 0
+variable        STEP_P12_START     equal v_RAMP_LOAD_STEPS
+variable        STEP_UNLOAD_START  equal v_RAMP_LOAD_STEPS+v_HOLD_P12_STEPS
+variable        STEP_P0_START      equal v_STEP_UNLOAD_START+v_RAMP_UNLOAD_STEPS
+variable        STEP_SEP_START     equal v_STEP_P0_START+v_HOLD_P0_STEPS
+
+variable        STEP_SEP1_START    equal v_STEP_SEP_START
+variable        STEP_SEP2_START    equal v_STEP_SEP_START+1*(v_SEP_RAMP_STEPS+v_SEP_HOLD_STEPS)
+variable        STEP_SEP3_START    equal v_STEP_SEP_START+2*(v_SEP_RAMP_STEPS+v_SEP_HOLD_STEPS)
+variable        STEP_SEP4_START    equal v_STEP_SEP_START+3*(v_SEP_RAMP_STEPS+v_SEP_HOLD_STEPS)
+variable        STEP_SEP5_START    equal v_STEP_SEP_START+4*(v_SEP_RAMP_STEPS+v_SEP_HOLD_STEPS)
+
+# ------------------------ FORCE FIELD STYLE BEFORE READ_DATA ----------------------------
+# Define styles before read_data to tolerate data files written with pair/bond coeff sections.
+dielectric      1.5
+pair_style      born/coul/dsf/cs 0.1 8.0 10.0
+bond_style      class2
+special_bonds   coul 0.0 1.0 1.0
+
+# ----------------------- ATOM DEFINITION ----------------------------
+fix             csinfo all property/atom i_CSID
+read_data       ${DATAIN} fix csinfo NULL CS-Info
+change_box      all z final ${ZLOBOX} ${ZHIBOX} units box
+
+# Coefficients from the current DSF test potential.
+pair_coeff      * * 0.0     1.000   0.0     0.0     0.0
+pair_coeff      2 6 1061.30 0.3740  0.0     0.0     0.0     # Ba-O
+pair_coeff      4 6 3769.93 0.2558  0.0     0.0     0.0     # Ti-O
+pair_coeff      6 6 4740.00 0.2809  0.0     160.0   0.0     # O-O
+pair_modify     table 0
+
+bond_coeff      1 0.0 125.9 0.0 0.0
+bond_coeff      2 0.0 161.0 0.0 20.83
+bond_coeff      3 0.0 15.5  0.0 166.67
+
+# ----------------------- GROUPS ----------------------------
+group           Bacore    type 1
+group           Bashell   type 2
+group           Ticore    type 3
+group           Tishell   type 4
+group           Ocore     type 5
+group           Oshell    type 6
+group           cores     type 1 3 5
+group           shells    type 2 4 6
+group           BTO       type 1 2 3 4 5 6
+
+# Static upper/lower slab groups. The interface lies around z~50 A in the initial geometry.
+region          lowerReg block INF INF INF INF INF 50.0 units box
+region          upperReg block INF INF INF INF 50.0 INF units box
+group           lower region lowerReg
+group           upper region upperReg
+group           lowerCore intersect lower cores
+group           upperCore intersect upper cores
+
+# Symmetric outer-surface traction groups for pressure loading/unloading.
+# These thresholds should give Ntop ~= Nbot for the current geometry.
+# Only core atoms are directly loaded; shells respond through core-shell coupling.
+variable        ZBOT_PRESS_MAX equal 33.0
+variable        ZTOP_PRESS_MIN equal 66.0
+region          botSurfReg block INF INF INF INF INF ${ZBOT_PRESS_MAX} units box
+region          topSurfReg block INF INF INF INF ${ZTOP_PRESS_MIN} INF units box
+group           botSurfAtoms region botSurfReg
+group           topSurfAtoms region topSurfReg
+group           botPressCore intersect botSurfAtoms cores
+group           topPressCore intersect topSurfAtoms cores
+
+# ----------------------- NEIGHBOR / COMM ----------------------------
+neighbor        2.0 bin
+comm_modify     vel yes cutoff 15.0
+neigh_modify    delay 0 every 1 check yes
+
+# ------------------------ COMPUTES -------------------------------
+compute         myKE all ke/atom
+compute         myPE all pe/atom
+compute         stress all stress/atom NULL virial
+compute         Tcs all temp/cs cores shells
+compute         dis all displace/atom
+compute         thermo_press_lmp all pressure Tcs
+compute         cTop upper com
+compute         cBot lower com
+thermo_modify   temp Tcs press thermo_press_lmp lost error
+
+variable        Mise atom (1/sqrt(2))*sqrt((c_stress[1]-c_stress[2])*(c_stress[1]-c_stress[2])+(c_stress[3]-c_stress[2])*(c_stress[3]-c_stress[2])+(c_stress[1]-c_stress[3])*(c_stress[1]-c_stress[3])+6*(c_stress[4]*c_stress[4]+c_stress[5]*c_stress[5]+c_stress[6]*c_stress[6]))
+
+variable        zTopCOM       equal c_cTop[3]
+variable        zBotCOM       equal c_cBot[3]
+variable        sepCOM        equal v_zTopCOM-v_zBotCOM
+variable        zUpperMin     equal bound(upper,zmin)
+variable        zLowerMax     equal bound(lower,zmax)
+variable        gapSurf       equal v_zUpperMin-v_zLowerMax
+
+# Surface pressure conversion to per-atom force.
+# Total force on each surface = P * Axy.
+# Per-atom force = P(GPa)/160.21766208 * lx*ly / N_surface_core.
+variable        Axy           equal lx*ly
+variable        Ntop          equal count(topPressCore)
+variable        Nbot          equal count(botPressCore)
+variable        NupperCore    equal count(upperCore)
+variable        NlowerCore    equal count(lowerCore)
+
+# Pressure-to-force conversion for loading and unloading.
+# Load ramp is valid because reset_timestep 0 is used once before the formal path.
+variable        PloadRamp     equal v_PTARGET_GPa*(step-v_STEP_LOAD_START)/v_RAMP_LOAD_STEPS
+variable        FtopLoad      equal -v_PloadRamp/v_GPa_per_eVA3*v_Axy/v_Ntop
+variable        FbotLoad      equal  v_PloadRamp/v_GPa_per_eVA3*v_Axy/v_Nbot
+
+variable        FtopTarget    equal -v_PTARGET_GPa/v_GPa_per_eVA3*v_Axy/v_Ntop
+variable        FbotTarget    equal  v_PTARGET_GPa/v_GPa_per_eVA3*v_Axy/v_Nbot
+
+variable        PunloadRamp   equal v_PTARGET_GPa*(1.0-(step-v_STEP_UNLOAD_START)/v_RAMP_UNLOAD_STEPS)
+variable        FtopUnload    equal -v_PunloadRamp/v_GPa_per_eVA3*v_Axy/v_Ntop
+variable        FbotUnload    equal  v_PunloadRamp/v_GPa_per_eVA3*v_Axy/v_Nbot
+
+# Keep thermo output conservative and robust.
+# Stage-specific separation target/error variables are not placed in thermo_style,
+# because repeatedly deleting/redefining variables that are referenced by thermo
+# can cause compatibility problems in some LAMMPS versions.
+# During separation, compare v_sepCOM with the printed target stage:
+#   SEP0+2, SEP0+4, SEP0+6, SEP0+8, SEP0+10 A.
+thermo          ${THERMO}
+thermo_style    custom step temp ke pe etotal press pzz v_sepCOM v_gapSurf v_zLowerMax v_zUpperMin v_Axy v_Ntop v_Nbot v_NupperCore v_NlowerCore lx ly lz
+thermo_modify   temp Tcs press thermo_press_lmp lost error
+
+run             0
+print           "Surface loading check: Ntop=${Ntop}, Nbot=${Nbot}; NupperCore=${NupperCore}, NlowerCore=${NlowerCore}."
+print           "If Ntop and Nbot differ strongly, tune ZTOP_PRESS_MIN / ZBOT_PRESS_MAX."
+write_data      ${CASE}_start.data pair ij
+write_restart   ${CASE}_start.restart
+
+# ------------------------ SMALL PRE-RELAXATION ----------------------------
+# No dump is written during this part. This avoids huge unnecessary output and
+# keeps the later dump focused on the controlled pressure/unload/separation path.
+fix             teth shells spring/self 0.05
+fix_modify      teth energy yes
+min_style       cg
+min_modify      dmax 0.00010 line quadratic
+minimize        0.0 1.0e-6 3000 30000
+unfix           teth
+run             0
+write_data      ${CASE}_prerelax.data pair ij
+write_restart   ${CASE}_prerelax.restart
+
+# Reset timestep and displacement reference ONCE, after pre-relaxation.
+# The dump c_dis[*] now measures the full formal path:
+# 0 GPa reference -> P12 ramp/hold -> unload -> P0 hold -> controlled separation.
+reset_timestep  0
+uncompute       dis
+compute         dis all displace/atom
+
+# ------------------------ FULL-PATH DUMP ----------------------------
+dump            dpath all custom ${DUMPINT} ${CASE}_Path.*.dump id mol type q x y z fx fy fz c_dis[1] c_dis[2] c_dis[3] c_dis[4] c_myKE c_myPE v_Mise
+dump_modify     dpath sort id first yes
+
+# Common thermostat and momentum removal for the full formal path.
+velocity        all create ${Tstart} 12345 mom yes rot no dist gaussian bias yes temp Tcs
+velocity        all scale  ${Tstart} temp Tcs
+fix             fmom all momentum 1000 linear 1 1 1
+fix             nvt all nvt temp ${Tstart} ${Tstop} ${Tdamp} drag 1
+fix_modify      nvt temp Tcs
+
+run             0
+write_data      ${CASE}_path_initial.data pair ij
+write_restart   ${CASE}_path_initial.restart
+
+# ------------------------ STAGE 1: RAMP 0 -> 12 GPa ----------------------------
+print           "Stage 1: ramp 0 -> ${PTARGET_GPa} GPa. Expected final step = ${STEP_P12_START}."
+fix             pushTop topPressCore addforce 0.0 0.0 v_FtopLoad
+fix             pushBot botPressCore addforce 0.0 0.0 v_FbotLoad
+run             ${RAMP_LOAD_STEPS}
+run             0
+write_data      ${CASE}_ramp_to_P12.data pair ij
+write_restart   ${CASE}_ramp_to_P12.restart
+unfix           pushTop
+unfix           pushBot
+
+# ------------------------ STAGE 2: HOLD AT 12 GPa ----------------------------
+print           "Stage 2: hold at ${PTARGET_GPa} GPa. Expected final step = ${STEP_UNLOAD_START}."
+fix             pushTop topPressCore addforce 0.0 0.0 v_FtopTarget
+fix             pushBot botPressCore addforce 0.0 0.0 v_FbotTarget
+run             ${HOLD_P12_STEPS}
+run             0
+write_data      ${CASE}_P12_hold.data pair ij
+write_restart   ${CASE}_P12_hold.restart
+unfix           pushTop
+unfix           pushBot
+
+# ------------------------ STAGE 3: UNLOAD 12 -> 0 GPa ----------------------------
+# Continuous timestep is preserved. No reset_timestep is used here.
+print           "Stage 3: unload ${PTARGET_GPa} -> 0 GPa. Expected final step = ${STEP_P0_START}."
+fix             pushTop topPressCore addforce 0.0 0.0 v_FtopUnload
+fix             pushBot botPressCore addforce 0.0 0.0 v_FbotUnload
+run             ${RAMP_UNLOAD_STEPS}
+run             0
+write_data      ${CASE}_unload_to_P0.data pair ij
+write_restart   ${CASE}_unload_to_P0.restart
+unfix           pushTop
+unfix           pushBot
+
+# ------------------------ STAGE 4: HOLD AT 0 GPa ----------------------------
+print           "Stage 4: hold at 0 GPa. Expected final step = ${STEP_SEP_START}."
+run             ${HOLD_P0_STEPS}
+run             0
+
+# Freeze the current upper-lower COM separation as the zero-separation reference
+# for the subsequent controlled separation path.
+# IMPORTANT: define SEP0 immediately after run 0, while the COM computes are current.
+# Do not place this line after write_data/write_restart, because those commands can
+# invalidate computes for immediate variable expansion in some LAMMPS versions.
+variable        SEP0 equal ${sepCOM}
+print           "Controlled separation reference: SEP0=${SEP0} A at current P0-hold state."
+
+write_data      ${CASE}_P0_hold.data pair ij
+write_restart   ${CASE}_P0_hold.restart
+
+# =========================================================
+# CONTROLLED SEPARATION PATH
+#
+# Instead of displace_atoms upper move ..., use an equal-and-opposite COM spring:
+#   sepError = sepTarget - sepCOM
+#   upperCore force per atom = +KSEP_COM * sepError / NupperCore
+#   lowerCore force per atom = -KSEP_COM * sepError / NlowerCore
+# This keeps the total external force approximately zero and prevents simple
+# one-shot separation followed by uncontrolled re-attachment.
+# =========================================================
+
+# ------------------------ SEPARATION +2 A: RAMP ----------------------------
+variable        sepExtra1Ramp  equal 0.0*v_SEP_STEP_A+v_SEP_STEP_A*(step-v_STEP_SEP1_START)/v_SEP_RAMP_STEPS
+variable        sepTarget1Ramp equal v_SEP0+v_sepExtra1Ramp
+variable        sepError1Ramp  equal v_sepTarget1Ramp-v_sepCOM
+variable        FsepUp1Ramp    equal  v_KSEP_COM*v_sepError1Ramp/v_NupperCore
+variable        FsepLo1Ramp    equal -v_KSEP_COM*v_sepError1Ramp/v_NlowerCore
+print           "Stage 5a: controlled separation ramp to SEP0+2 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp1Ramp
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo1Ramp
+run             ${SEP_RAMP_STEPS}
+run             0
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +2 A: HOLD ----------------------------
+variable        sepExtra1Hold  equal 1.0*v_SEP_STEP_A
+variable        sepTarget1Hold equal v_SEP0+v_sepExtra1Hold
+variable        sepError1Hold  equal v_sepTarget1Hold-v_sepCOM
+variable        FsepUp1Hold    equal  v_KSEP_COM*v_sepError1Hold/v_NupperCore
+variable        FsepLo1Hold    equal -v_KSEP_COM*v_sepError1Hold/v_NlowerCore
+print           "Stage 5b: hold at SEP0+2 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp1Hold
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo1Hold
+run             ${SEP_HOLD_STEPS}
+run             0
+write_data      ${CASE}_sep02_hold.data pair ij
+write_restart   ${CASE}_sep02_hold.restart
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +4 A: RAMP ----------------------------
+variable        sepExtra2Ramp  equal 1.0*v_SEP_STEP_A+v_SEP_STEP_A*(step-v_STEP_SEP2_START)/v_SEP_RAMP_STEPS
+variable        sepTarget2Ramp equal v_SEP0+v_sepExtra2Ramp
+variable        sepError2Ramp  equal v_sepTarget2Ramp-v_sepCOM
+variable        FsepUp2Ramp    equal  v_KSEP_COM*v_sepError2Ramp/v_NupperCore
+variable        FsepLo2Ramp    equal -v_KSEP_COM*v_sepError2Ramp/v_NlowerCore
+print           "Stage 6a: controlled separation ramp to SEP0+4 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp2Ramp
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo2Ramp
+run             ${SEP_RAMP_STEPS}
+run             0
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +4 A: HOLD ----------------------------
+variable        sepExtra2Hold  equal 2.0*v_SEP_STEP_A
+variable        sepTarget2Hold equal v_SEP0+v_sepExtra2Hold
+variable        sepError2Hold  equal v_sepTarget2Hold-v_sepCOM
+variable        FsepUp2Hold    equal  v_KSEP_COM*v_sepError2Hold/v_NupperCore
+variable        FsepLo2Hold    equal -v_KSEP_COM*v_sepError2Hold/v_NlowerCore
+print           "Stage 6b: hold at SEP0+4 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp2Hold
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo2Hold
+run             ${SEP_HOLD_STEPS}
+run             0
+write_data      ${CASE}_sep04_hold.data pair ij
+write_restart   ${CASE}_sep04_hold.restart
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +6 A: RAMP ----------------------------
+variable        sepExtra3Ramp  equal 2.0*v_SEP_STEP_A+v_SEP_STEP_A*(step-v_STEP_SEP3_START)/v_SEP_RAMP_STEPS
+variable        sepTarget3Ramp equal v_SEP0+v_sepExtra3Ramp
+variable        sepError3Ramp  equal v_sepTarget3Ramp-v_sepCOM
+variable        FsepUp3Ramp    equal  v_KSEP_COM*v_sepError3Ramp/v_NupperCore
+variable        FsepLo3Ramp    equal -v_KSEP_COM*v_sepError3Ramp/v_NlowerCore
+print           "Stage 7a: controlled separation ramp to SEP0+6 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp3Ramp
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo3Ramp
+run             ${SEP_RAMP_STEPS}
+run             0
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +6 A: HOLD ----------------------------
+variable        sepExtra3Hold  equal 3.0*v_SEP_STEP_A
+variable        sepTarget3Hold equal v_SEP0+v_sepExtra3Hold
+variable        sepError3Hold  equal v_sepTarget3Hold-v_sepCOM
+variable        FsepUp3Hold    equal  v_KSEP_COM*v_sepError3Hold/v_NupperCore
+variable        FsepLo3Hold    equal -v_KSEP_COM*v_sepError3Hold/v_NlowerCore
+print           "Stage 7b: hold at SEP0+6 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp3Hold
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo3Hold
+run             ${SEP_HOLD_STEPS}
+run             0
+write_data      ${CASE}_sep06_hold.data pair ij
+write_restart   ${CASE}_sep06_hold.restart
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +8 A: RAMP ----------------------------
+variable        sepExtra4Ramp  equal 3.0*v_SEP_STEP_A+v_SEP_STEP_A*(step-v_STEP_SEP4_START)/v_SEP_RAMP_STEPS
+variable        sepTarget4Ramp equal v_SEP0+v_sepExtra4Ramp
+variable        sepError4Ramp  equal v_sepTarget4Ramp-v_sepCOM
+variable        FsepUp4Ramp    equal  v_KSEP_COM*v_sepError4Ramp/v_NupperCore
+variable        FsepLo4Ramp    equal -v_KSEP_COM*v_sepError4Ramp/v_NlowerCore
+print           "Stage 8a: controlled separation ramp to SEP0+8 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp4Ramp
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo4Ramp
+run             ${SEP_RAMP_STEPS}
+run             0
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +8 A: HOLD ----------------------------
+variable        sepExtra4Hold  equal 4.0*v_SEP_STEP_A
+variable        sepTarget4Hold equal v_SEP0+v_sepExtra4Hold
+variable        sepError4Hold  equal v_sepTarget4Hold-v_sepCOM
+variable        FsepUp4Hold    equal  v_KSEP_COM*v_sepError4Hold/v_NupperCore
+variable        FsepLo4Hold    equal -v_KSEP_COM*v_sepError4Hold/v_NlowerCore
+print           "Stage 8b: hold at SEP0+8 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp4Hold
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo4Hold
+run             ${SEP_HOLD_STEPS}
+run             0
+write_data      ${CASE}_sep08_hold.data pair ij
+write_restart   ${CASE}_sep08_hold.restart
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +10 A: RAMP ----------------------------
+variable        sepExtra5Ramp  equal 4.0*v_SEP_STEP_A+v_SEP_STEP_A*(step-v_STEP_SEP5_START)/v_SEP_RAMP_STEPS
+variable        sepTarget5Ramp equal v_SEP0+v_sepExtra5Ramp
+variable        sepError5Ramp  equal v_sepTarget5Ramp-v_sepCOM
+variable        FsepUp5Ramp    equal  v_KSEP_COM*v_sepError5Ramp/v_NupperCore
+variable        FsepLo5Ramp    equal -v_KSEP_COM*v_sepError5Ramp/v_NlowerCore
+print           "Stage 9a: controlled separation ramp to SEP0+10 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp5Ramp
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo5Ramp
+run             ${SEP_RAMP_STEPS}
+run             0
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ SEPARATION +10 A: HOLD ----------------------------
+variable        sepExtra5Hold  equal 5.0*v_SEP_STEP_A
+variable        sepTarget5Hold equal v_SEP0+v_sepExtra5Hold
+variable        sepError5Hold  equal v_sepTarget5Hold-v_sepCOM
+variable        FsepUp5Hold    equal  v_KSEP_COM*v_sepError5Hold/v_NupperCore
+variable        FsepLo5Hold    equal -v_KSEP_COM*v_sepError5Hold/v_NlowerCore
+print           "Stage 9b: hold at SEP0+10 A."
+fix             sepUp upperCore addforce 0.0 0.0 v_FsepUp5Hold
+fix             sepLo lowerCore addforce 0.0 0.0 v_FsepLo5Hold
+run             ${SEP_HOLD_STEPS}
+run             0
+write_data      ${CASE}_sep10_hold.data pair ij
+write_restart   ${CASE}_sep10_hold.restart
+unfix           sepUp
+unfix           sepLo
+
+# ------------------------ END ----------------------------
+unfix           nvt
+unfix           fmom
+undump          dpath
+
+write_data      ${CASE}_end.data pair ij
+write_restart   ${CASE}_end.restart
+
+print           "Completed controlled load-unload-separation path. Check sepCOM and gapSurf in thermo output against the printed SEP0+2/4/6/8/10 A targets."
+
+quit

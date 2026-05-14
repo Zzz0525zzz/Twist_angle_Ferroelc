@@ -1,0 +1,233 @@
+# =========================================================
+# Twisted BaTiO3 bilayer: P12 long-hold surface-traction test
+#
+# Purpose:
+#   Use the current DSF core-shell potential to test whether the interfacial
+#   moire-correlated rotational polarization texture is stable during a longer
+#   12 GPa normal-pressure hold.
+#
+# Current interpretation:
+#   - twist already writes an interfacial rotational / vortex-like polar texture
+#     into the 0 GPa relaxed structure;
+#   - normal pressure should be treated as a tuning / amplification variable,
+#     not as the fundamental origin of the texture;
+#   - previous 8-16 GPa screening suggests 10-12 GPa is the useful window.
+#
+# Physical loading:
+#   top outer surface:    downward traction
+#   bottom outer surface: upward traction
+#   net external force:   approximately zero
+#   interface:            compressed by the two slabs being pressed together
+#
+# Main protocol:
+#   1) read atomic.data;
+#   2) small conservative pre-relaxation, with no dump output;
+#   3) reset displacement reference;
+#   4) ramp 0 -> 12 GPa;
+#   5) hold at 12 GPa for a longer time;
+#   6) write data/restart and dump frames for layer-resolved post-processing.
+#
+# Main outputs:
+#   twist_bto_P12_longhold_start.data
+#   twist_bto_P12_longhold_prerelax.data
+#   twist_bto_P12_longhold_ramp_to_P12.data
+#   twist_bto_P12_longhold_P12_longhold.data
+#   twist_bto_P12_longhold_Load.*.dump
+# =========================================================
+
+# ------------------------ INITIALIZATION ----------------------------
+units           metal
+dimension       3
+boundary        p p f
+atom_style      full
+atom_modify     map yes
+
+timestep        0.0001
+
+variable        DATAIN    string atomic.data
+variable        CASE      string twist_bto_P12_longhold
+
+# Keep large z vacuum to remove the z-periodic fake interface.
+variable        ZLOBOX    equal 0.0
+variable        ZHIBOX    equal 130.0
+
+# Target pressure and timing.
+# timestep = 0.0001 ps in metal units.
+# RAMP_STEPS = 30000 -> 3 ps ramp.
+# HOLD_STEPS = 100000 -> 10 ps hold.
+# If this is too expensive, first test HOLD_STEPS = 50000.
+variable        PTARGET_GPa equal 12.0
+variable        RAMP_STEPS  equal 30000
+variable        HOLD_STEPS  equal 100000
+
+# Unit conversion: 1 eV/A^3 = 160.21766208 GPa.
+variable        GPa_per_eVA3 equal 160.21766208
+
+variable        Tstart    equal 5.0
+variable        Tstop     equal 5.0
+variable        Tdamp     equal 0.05
+variable        THERMO    equal 1000
+variable        DUMPINT   equal 5000
+
+# ------------------------ FORCE FIELD STYLE BEFORE READ_DATA ----------------------------
+# Define styles before read_data to tolerate data files written with pair/bond coeff sections.
+dielectric      1.5
+pair_style      born/coul/dsf/cs 0.1 8.0 10.0
+bond_style      class2
+special_bonds   coul 0.0 1.0 1.0
+
+# ----------------------- ATOM DEFINITION ----------------------------
+fix             csinfo all property/atom i_CSID
+read_data       ${DATAIN} fix csinfo NULL CS-Info
+change_box      all z final ${ZLOBOX} ${ZHIBOX} units box
+
+# Coefficients from the current DSF test potential.
+pair_coeff      * * 0.0     1.000   0.0     0.0     0.0
+pair_coeff      2 6 1061.30 0.3740  0.0     0.0     0.0     # Ba-O
+pair_coeff      4 6 3769.93 0.2558  0.0     0.0     0.0     # Ti-O
+pair_coeff      6 6 4740.00 0.2809  0.0     160.0   0.0     # O-O
+pair_modify     table 0
+
+bond_coeff      1 0.0 125.9 0.0 0.0
+bond_coeff      2 0.0 161.0 0.0 20.83
+bond_coeff      3 0.0 15.5  0.0 166.67
+
+# ----------------------- GROUPS ----------------------------
+group           Bacore    type 1
+group           Bashell   type 2
+group           Ticore    type 3
+group           Tishell   type 4
+group           Ocore     type 5
+group           Oshell    type 6
+group           cores     type 1 3 5
+group           shells    type 2 4 6
+group           BTO       type 1 2 3 4 5 6
+
+# Static upper/lower slab groups. The interface lies around z~50 A.
+region          lowerReg block INF INF INF INF INF 50.0 units box
+region          upperReg block INF INF INF INF 50.0 INF units box
+group           lower region lowerReg
+group           upper region upperReg
+group           lowerCore intersect lower cores
+group           upperCore intersect upper cores
+
+# Symmetric outer-surface traction groups.
+# These thresholds should give Ntop ~= Nbot for the current geometry.
+# Only core atoms are directly loaded; shells respond through core-shell coupling.
+variable        ZBOT_PRESS_MAX equal 33.0
+variable        ZTOP_PRESS_MIN equal 66.0
+region          botSurfReg block INF INF INF INF INF ${ZBOT_PRESS_MAX} units box
+region          topSurfReg block INF INF INF INF ${ZTOP_PRESS_MIN} INF units box
+group           botSurfAtoms region botSurfReg
+group           topSurfAtoms region topSurfReg
+group           botPressCore intersect botSurfAtoms cores
+group           topPressCore intersect topSurfAtoms cores
+
+# ----------------------- NEIGHBOR / COMM ----------------------------
+neighbor        2.0 bin
+comm_modify     vel yes cutoff 15.0
+neigh_modify    delay 0 every 1 check yes
+
+# ------------------------ COMPUTES -------------------------------
+compute         myKE all ke/atom
+compute         myPE all pe/atom
+compute         stress all stress/atom NULL virial
+compute         Tcs all temp/cs cores shells
+compute         dis all displace/atom
+compute         thermo_press_lmp all pressure Tcs
+compute         cTop upper com
+compute         cBot lower com
+thermo_modify   temp Tcs press thermo_press_lmp lost error
+
+variable        Mise atom (1/sqrt(2))*sqrt((c_stress[1]-c_stress[2])*(c_stress[1]-c_stress[2])+(c_stress[3]-c_stress[2])*(c_stress[3]-c_stress[2])+(c_stress[1]-c_stress[3])*(c_stress[1]-c_stress[3])+6*(c_stress[4]*c_stress[4]+c_stress[5]*c_stress[5]+c_stress[6]*c_stress[6]))
+
+variable        zTopCOM equal c_cTop[3]
+variable        zBotCOM equal c_cBot[3]
+variable        sepCOM  equal v_zTopCOM-v_zBotCOM
+variable        zUpperMin equal bound(upper,zmin)
+variable        zLowerMax equal bound(lower,zmax)
+variable        gapSurf equal v_zUpperMin-v_zLowerMax
+
+# Surface pressure conversion to per-atom force.
+# Total force on each surface = P * Axy.
+# Per-atom force = P(GPa)/160.21766208 * lx*ly / N_surface_core.
+variable        Axy    equal lx*ly
+variable        Ntop   equal count(topPressCore)
+variable        Nbot   equal count(botPressCore)
+
+# Pressure-to-force conversion.
+# Ramp variable is valid because reset_timestep 0 is used before loading.
+variable        PrampTarget equal v_PTARGET_GPa*step/v_RAMP_STEPS
+variable        FtopRamp    equal -v_PrampTarget/v_GPa_per_eVA3*v_Axy/v_Ntop
+variable        FbotRamp    equal  v_PrampTarget/v_GPa_per_eVA3*v_Axy/v_Nbot
+
+variable        FtopTarget  equal -v_PTARGET_GPa/v_GPa_per_eVA3*v_Axy/v_Ntop
+variable        FbotTarget  equal  v_PTARGET_GPa/v_GPa_per_eVA3*v_Axy/v_Nbot
+
+thermo          ${THERMO}
+thermo_style    custom step temp ke pe etotal press pzz v_sepCOM v_gapSurf v_zLowerMax v_zUpperMin v_Axy v_Ntop v_Nbot lx ly lz
+thermo_modify   temp Tcs press thermo_press_lmp lost error
+
+run             0
+print           "Surface loading check: Ntop=${Ntop}, Nbot=${Nbot}. If they differ strongly, tune ZTOP_PRESS_MIN."
+write_data      ${CASE}_start.data pair ij
+write_restart   ${CASE}_start.restart
+
+# ------------------------ SMALL PRE-RELAXATION ----------------------------
+# No dump is written during this part. This avoids huge unnecessary output and
+# keeps the later dump focused on the pressure-induced response.
+fix             teth shells spring/self 0.05
+fix_modify      teth energy yes
+min_style       cg
+min_modify      dmax 0.00010 line quadratic
+minimize        0.0 1.0e-6 3000 30000
+unfix           teth
+run             0
+write_data      ${CASE}_prerelax.data pair ij
+write_restart   ${CASE}_prerelax.restart
+
+# Reset displacement reference after pre-relaxation. The dump c_dis[*] will now
+# measure displacement caused by ramp + P12 hold, not construction/pre-relaxation.
+uncompute       dis
+compute         dis all displace/atom
+
+# ------------------------ DUMP FOR RAMP + LONG HOLD ONLY ----------------------------
+dump            dload all custom ${DUMPINT} ${CASE}_Load.*.dump id mol type q x y z fx fy fz c_dis[1] c_dis[2] c_dis[3] c_dis[4] c_myKE c_myPE v_Mise
+dump_modify     dload sort id
+
+# Common thermostat and momentum removal for the ramp/hold sequence.
+reset_timestep  0
+velocity        all create ${Tstart} 12345 mom yes rot no dist gaussian bias yes temp Tcs
+velocity        all scale  ${Tstart} temp Tcs
+fix             fmom all momentum 1000 linear 1 1 1
+fix             nvt all nvt temp ${Tstart} ${Tstop} ${Tdamp} drag 1
+fix_modify      nvt temp Tcs
+
+# ------------------------ RAMP 0 -> 12 GPa ----------------------------
+fix             pushTop topPressCore addforce 0.0 0.0 v_FtopRamp
+fix             pushBot botPressCore addforce 0.0 0.0 v_FbotRamp
+run             ${RAMP_STEPS}
+run             0
+write_data      ${CASE}_ramp_to_P12.data pair ij
+write_restart   ${CASE}_ramp_to_P12.restart
+unfix           pushTop
+unfix           pushBot
+
+# ------------------------ LONG HOLD AT 12 GPa ----------------------------
+fix             pushTop topPressCore addforce 0.0 0.0 v_FtopTarget
+fix             pushBot botPressCore addforce 0.0 0.0 v_FbotTarget
+run             ${HOLD_STEPS}
+run             0
+write_data      ${CASE}_P12_longhold.data pair ij
+write_restart   ${CASE}_P12_longhold.restart
+unfix           pushTop
+unfix           pushBot
+
+unfix           nvt
+unfix           fmom
+undump          dload
+
+write_data      ${CASE}_end.data pair ij
+write_restart   ${CASE}_end.restart
+
+quit

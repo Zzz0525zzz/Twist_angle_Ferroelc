@@ -1,0 +1,290 @@
+# =========================================================
+# Twisted BaTiO3 bilayer: Case B control
+# Rigid sacrificial loading-pad displacement control
+#
+# Purpose:
+#   Test whether the internal moire-coupled 3D polar texture survives when the
+#   outer loading layers are treated as sacrificial rigid pads instead of using
+#   direct core-only surface traction.
+#
+# Key idea:
+#   - bottom pad and top pad include BOTH core and shell atoms in the outermost
+#     loading layers;
+#   - pads are moved symmetrically by prescribed displacement using fix move;
+#   - mobile atoms between the pads are integrated by NVT with temp/cs;
+#   - pad layers are artificial loading fixtures and must be excluded from
+#     polarization/topology conclusions.
+#
+# Important LAMMPS compatibility note:
+#   fix move linear in some LAMMPS versions does NOT accept v_name variables
+#   directly. Therefore all pad velocities are immediately expanded with ${...}
+#   into floating-point numbers when each fix move command is defined.
+#
+# Physical path:
+#   1) read atomic.data;
+#   2) conservative pre-relaxation;
+#   3) reset timestep once and reset displacement reference;
+#   4) full-path dump starts at post-pre-relax reference state;
+#   5) rigid-pad symmetric displacement compression;
+#   6) compressed hold;
+#   7) rigid-pad symmetric displacement unload back to the reference pad spacing;
+#   8) P0 hold.
+#
+# Main outputs:
+#   twist_bto_B_rigid_pad_start.data
+#   twist_bto_B_rigid_pad_prerelax.data
+#   twist_bto_B_rigid_pad_path_initial.data
+#   twist_bto_B_rigid_pad_compressed.data
+#   twist_bto_B_rigid_pad_compressed_hold.data
+#   twist_bto_B_rigid_pad_unloaded.data
+#   twist_bto_B_rigid_pad_P0_hold.data
+#   twist_bto_B_rigid_pad_Path.*.dump
+# =========================================================
+
+# ------------------------ INITIALIZATION ----------------------------
+units           metal
+dimension       3
+boundary        p p f
+atom_style      full
+atom_modify     map yes
+
+timestep        0.0001
+
+variable        DATAIN              string atomic.data
+variable        CASE                string twist_bto_B_rigid_pad
+
+# Keep large z vacuum.
+variable        ZLOBOX              equal 0.0
+variable        ZHIBOX              equal 130.0
+
+# ------------------------ PATH PARAMETERS ----------------------------
+# timestep = 0.0001 ps.
+# COMPRESS_TOTAL_A is the total reduction of the top-pad/bottom-pad separation.
+# Each pad moves by COMPRESS_TOTAL_A/2.
+variable        TS                  equal 0.0001
+variable        COMPRESS_TOTAL_A    equal 1.0
+variable        RAMP_LOAD_STEPS     equal 30000
+variable        HOLD_COMP_STEPS     equal 50000
+variable        RAMP_UNLOAD_STEPS   equal 30000
+variable        HOLD_P0_STEPS       equal 30000
+
+variable        Tstart              equal 5.0
+variable        Tstop               equal 5.0
+variable        Tdamp               equal 0.05
+variable        THERMO              equal 1000
+variable        DUMPINT             equal 5000
+
+# Unit conversion: 1 eV/A^3 = 160.21766208 GPa.
+variable        GPa_per_eVA3        equal 160.21766208
+
+# Rigid pad velocities in A/ps.
+# During compression: top moves downward, bottom moves upward.
+# During unloading: top moves upward, bottom moves downward.
+variable        VpadMag             equal v_COMPRESS_TOTAL_A/(2.0*v_RAMP_LOAD_STEPS*v_TS)
+variable        VtopLoad            equal -v_VpadMag
+variable        VbotLoad            equal  v_VpadMag
+variable        VtopUnload          equal  v_COMPRESS_TOTAL_A/(2.0*v_RAMP_UNLOAD_STEPS*v_TS)
+variable        VbotUnload          equal -v_COMPRESS_TOTAL_A/(2.0*v_RAMP_UNLOAD_STEPS*v_TS)
+
+# Step markers for monitoring only. No reset_timestep after the formal path starts.
+variable        STEP_COMP_END       equal v_RAMP_LOAD_STEPS
+variable        STEP_UNLOAD_START   equal v_RAMP_LOAD_STEPS+v_HOLD_COMP_STEPS
+variable        STEP_P0_START       equal v_STEP_UNLOAD_START+v_RAMP_UNLOAD_STEPS
+variable        STEP_END            equal v_STEP_P0_START+v_HOLD_P0_STEPS
+
+# ------------------------ FORCE FIELD STYLE BEFORE READ_DATA ----------------------------
+# Define styles before read_data to tolerate data files written with pair/bond coeff sections.
+dielectric      1.5
+pair_style      born/coul/dsf/cs 0.1 8.0 10.0
+bond_style      class2
+special_bonds   coul 0.0 1.0 1.0
+
+# ----------------------- ATOM DEFINITION ----------------------------
+fix             csinfo all property/atom i_CSID
+read_data       ${DATAIN} fix csinfo NULL CS-Info
+change_box      all z final ${ZLOBOX} ${ZHIBOX} units box
+
+# Coefficients from the current DSF test potential.
+pair_coeff      * * 0.0     1.000   0.0     0.0     0.0
+pair_coeff      2 6 1061.30 0.3740  0.0     0.0     0.0     # Ba-O
+pair_coeff      4 6 3769.93 0.2558  0.0     0.0     0.0     # Ti-O
+pair_coeff      6 6 4740.00 0.2809  0.0     160.0   0.0     # O-O
+pair_modify     table 0
+
+bond_coeff      1 0.0 125.9 0.0 0.0
+bond_coeff      2 0.0 161.0 0.0 20.83
+bond_coeff      3 0.0 15.5  0.0 166.67
+
+# ----------------------- BASIC GROUPS ----------------------------
+group           Bacore      type 1
+group           Bashell     type 2
+group           Ticore      type 3
+group           Tishell     type 4
+group           Ocore       type 5
+group           Oshell      type 6
+group           cores       type 1 3 5
+group           shells      type 2 4 6
+group           BTO         type 1 2 3 4 5 6
+
+# Static upper/lower slab groups for monitoring. The initial interface is around z~50 A.
+region          lowerReg block INF INF INF INF INF 50.0 units box
+region          upperReg block INF INF INF INF 50.0 INF units box
+group           lower region lowerReg
+group           upper region upperReg
+group           lowerCore intersect lower cores
+group           upperCore intersect upper cores
+
+# ----------------------- RIGID SACRIFICIAL LOADING PADS ----------------------------
+# These thresholds are chosen to select approximately the outermost unit-cell layer.
+# Pads include BOTH cores and shells, and are moved by fix move as rigid loading fixtures.
+# Pad atoms are NOT integrated by NVT. They should be excluded from physical analysis.
+variable        ZBOT_PAD_MAX equal 33.0
+variable        ZTOP_PAD_MIN equal 66.0
+region          botPadReg block INF INF INF INF INF ${ZBOT_PAD_MAX} units box
+region          topPadReg block INF INF INF INF ${ZTOP_PAD_MIN} INF units box
+group           botPad region botPadReg
+group           topPad region topPadReg
+group           mobile subtract all botPad topPad
+group           mobileCores intersect mobile cores
+group           mobileShells intersect mobile shells
+
+# ----------------------- NEIGHBOR / COMM ----------------------------
+neighbor        2.0 bin
+comm_modify     vel yes cutoff 15.0
+neigh_modify    delay 0 every 1 check yes
+
+# ------------------------ COMPUTES -------------------------------
+compute         myKE all ke/atom
+compute         myPE all pe/atom
+compute         stress all stress/atom NULL virial
+compute         Tcs mobile temp/cs mobileCores mobileShells
+compute         dis all displace/atom
+compute         thermo_press_lmp all pressure Tcs
+compute         cTop upper com
+compute         cBot lower com
+compute         cTopPad topPad com
+compute         cBotPad botPad com
+compute         fTopPad topPad reduce sum fz
+compute         fBotPad botPad reduce sum fz
+
+variable        Mise atom (1/sqrt(2))*sqrt((c_stress[1]-c_stress[2])*(c_stress[1]-c_stress[2])+(c_stress[3]-c_stress[2])*(c_stress[3]-c_stress[2])+(c_stress[1]-c_stress[3])*(c_stress[1]-c_stress[3])+6*(c_stress[4]*c_stress[4]+c_stress[5]*c_stress[5]+c_stress[6]*c_stress[6]))
+
+# Geometry monitors.
+variable        Axy             equal lx*ly
+variable        zTopCOM         equal c_cTop[3]
+variable        zBotCOM         equal c_cBot[3]
+variable        sepCOM          equal v_zTopCOM-v_zBotCOM
+variable        zTopPadCOM      equal c_cTopPad[3]
+variable        zBotPadCOM      equal c_cBotPad[3]
+variable        padSepCOM       equal v_zTopPadCOM-v_zBotPadCOM
+variable        zTopPadMin      equal bound(topPad,zmin)
+variable        zBotPadMax      equal bound(botPad,zmax)
+variable        padGap          equal v_zTopPadMin-v_zBotPadMax
+variable        zUpperMin       equal bound(upper,zmin)
+variable        zLowerMax       equal bound(lower,zmax)
+variable        gapSurf         equal v_zUpperMin-v_zLowerMax
+variable        NtopPad         equal count(topPad)
+variable        NbotPad         equal count(botPad)
+variable        Nmobile         equal count(mobile)
+variable        NmobileCore     equal count(mobileCores)
+variable        NmobileShell    equal count(mobileShells)
+
+# Approximate reaction-pressure monitors from interaction forces acting on pads.
+# Signs are only for monitoring; compare trends, not absolute sign conventions.
+variable        PtopPadGPa      equal -c_fTopPad/v_Axy*v_GPa_per_eVA3
+variable        PbotPadGPa      equal  c_fBotPad/v_Axy*v_GPa_per_eVA3
+
+thermo          ${THERMO}
+thermo_style    custom step temp ke pe etotal press pzz v_sepCOM v_padSepCOM v_padGap v_gapSurf v_PtopPadGPa v_PbotPadGPa v_NtopPad v_NbotPad v_Nmobile v_NmobileCore v_NmobileShell lx ly lz
+thermo_modify   temp Tcs press thermo_press_lmp lost error
+
+run             0
+print           "Rigid-pad check: NtopPad=${NtopPad}, NbotPad=${NbotPad}, Nmobile=${Nmobile}."
+print           "Pad velocities: VtopLoad=${VtopLoad} A/ps, VbotLoad=${VbotLoad} A/ps, VtopUnload=${VtopUnload} A/ps, VbotUnload=${VbotUnload} A/ps."
+write_data      ${CASE}_start.data pair ij
+write_restart   ${CASE}_start.restart
+
+# ------------------------ SMALL PRE-RELAXATION ----------------------------
+# No dump during pre-relaxation. This only removes small initial numerical stress.
+fix             teth shells spring/self 0.05
+fix_modify      teth energy yes
+min_style       cg
+min_modify      dmax 0.00010 line quadratic
+minimize        0.0 1.0e-6 3000 30000
+unfix           teth
+run             0
+write_data      ${CASE}_prerelax.data pair ij
+write_restart   ${CASE}_prerelax.restart
+
+# Reset timestep and displacement reference once, after pre-relaxation.
+reset_timestep  0
+uncompute       dis
+compute         dis all displace/atom
+
+# ------------------------ FULL-PATH DUMP ----------------------------
+dump            dpath all custom ${DUMPINT} ${CASE}_Path.*.dump id mol type q x y z fx fy fz c_dis[1] c_dis[2] c_dis[3] c_dis[4] c_myKE c_myPE v_Mise
+dump_modify     dpath sort id first yes
+
+# Mobile atoms are integrated. Rigid pads are NOT integrated by NVT.
+velocity        mobile create ${Tstart} 12345 mom yes rot no dist gaussian bias yes temp Tcs
+velocity        mobile scale  ${Tstart} temp Tcs
+velocity        topPad set 0.0 0.0 0.0
+velocity        botPad set 0.0 0.0 0.0
+fix             fmom mobile momentum 1000 linear 1 1 1
+fix             nvt mobile nvt temp ${Tstart} ${Tstop} ${Tdamp} drag 1
+fix_modify      nvt temp Tcs
+
+run             0
+write_data      ${CASE}_path_initial.data pair ij
+write_restart   ${CASE}_path_initial.restart
+
+# ------------------------ STAGE 1: RIGID-PAD COMPRESSION RAMP ----------------------------
+# IMPORTANT: use immediate ${...} expansion because some LAMMPS versions do not
+# accept v_name variables in fix move linear.
+print           "Stage 1: rigid-pad compression ramp. COMPRESS_TOTAL_A=${COMPRESS_TOTAL_A} A. Expected final step = ${STEP_COMP_END}."
+fix             moveTop topPad move linear 0.0 0.0 ${VtopLoad} units box
+fix             moveBot botPad move linear 0.0 0.0 ${VbotLoad} units box
+run             ${RAMP_LOAD_STEPS}
+run             0
+unfix           moveTop
+unfix           moveBot
+write_data      ${CASE}_compressed.data pair ij
+write_restart   ${CASE}_compressed.restart
+
+# ------------------------ STAGE 2: COMPRESSED HOLD ----------------------------
+# Pads remain fixed because they are not integrated by NVT.
+print           "Stage 2: compressed hold. Expected final step = ${STEP_UNLOAD_START}."
+run             ${HOLD_COMP_STEPS}
+run             0
+write_data      ${CASE}_compressed_hold.data pair ij
+write_restart   ${CASE}_compressed_hold.restart
+
+# ------------------------ STAGE 3: RIGID-PAD UNLOAD RAMP ----------------------------
+print           "Stage 3: rigid-pad unload ramp back to reference pad spacing. Expected final step = ${STEP_P0_START}."
+fix             moveTop topPad move linear 0.0 0.0 ${VtopUnload} units box
+fix             moveBot botPad move linear 0.0 0.0 ${VbotUnload} units box
+run             ${RAMP_UNLOAD_STEPS}
+run             0
+unfix           moveTop
+unfix           moveBot
+write_data      ${CASE}_unloaded.data pair ij
+write_restart   ${CASE}_unloaded.restart
+
+# ------------------------ STAGE 4: P0 HOLD ----------------------------
+print           "Stage 4: P0 hold after rigid-pad unload. Expected final step = ${STEP_END}."
+run             ${HOLD_P0_STEPS}
+run             0
+write_data      ${CASE}_P0_hold.data pair ij
+write_restart   ${CASE}_P0_hold.restart
+
+# ------------------------ END ----------------------------
+unfix           nvt
+unfix           fmom
+undump          dpath
+
+write_data      ${CASE}_end.data pair ij
+write_restart   ${CASE}_end.restart
+
+print           "Completed Case B rigid-pad displacement-control path. Exclude topPad/botPad layers from physics/topology analysis."
+
+quit
