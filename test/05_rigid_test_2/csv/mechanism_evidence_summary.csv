@@ -1,0 +1,8 @@
+hypothesis,computed_evidence,verdict,caution
+Pz vertical-gap channel,"clean P0/compressed |dPz|=4.04, |dh_upper|=1.49, |grad_h_upper|=1.35",支持,h_upper 是 IDW 局域 gap proxy，不是最终严格 buried-interface gap；需要后续 opposite-layer interface 插值版本确认。
+Layer-dependent amplification instead of strain-copy,"P0 layer5/clean ratios: |dPxy|=12.3, |dPz|=3.64, |grad_uz|=1.09",支持,若几何模板相近但极化放大很多，说明需要 layer-dependent susceptibility / initial background；不是应变直接复制极化。
+P0_hold delayed redistribution,"clean_dPxy: jump_fraction=0.846, 可能有跳变或非单调; clean_dPz: jump_fraction=0.876, 可能有跳变或非单调; layer5_dPxy: jump_fraction=1.55, 可能有跳变或非单调; layer5_dPz: jump_fraction=0.718, 连续增强倾向",需要检查,该项用于排除单帧跳变；若 jump_fraction 大，应回看单帧/neighbor assignment。
+Spatial Pz-h positional match,"top |dPz| with top |dh_upper|: median enrichment=0.842, median nearest-distance/norm=0.0321",较弱,这是位置级证据：强 Pz 区和强 h-change 区是否同位或邻近；仍不是因果证明。
+Pxy mechanical-template ranking,"clean layers best=Pxy_vs_grad_h_lower enrichment=2.12; shear-gradient rank=7, enrichment=0.918",不支持单一 shear-gradient 主导,该项回答 Pxy 强区位置是否与剪切应变梯度强区同位；若 shear-gradient 不领先，不能用幅值/位置来证明它。
+Pxy direction-template ranking,"clean layers best=grad_h_best median |cos|=0.95; literature shear-gradient direction rank=7, median |cos|=0.679",不支持单一 shear-gradient 方向主导,该项回答 Pxy 方向是否与候选 vector template 对齐；它和位置/幅值证据互补。
+Pxy Nature-style evidence ranking,"clean layers best=vector_shear_gradient_direct value=0.695; component-sign rank=3, value=0.582",文献式 Pxy-template 证据不足,该项不看幅值线性，而看分量符号、方向、curl/chirality 等更接近文献图像的对应方式。

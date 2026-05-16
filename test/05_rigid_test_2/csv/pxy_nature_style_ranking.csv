@@ -1,0 +1,16 @@
+group,rank,test,median_value,interpretation
+clean,1,vector_shear_gradient_direct,0.69530889143009,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+clean,2,vector_shear_gradient_literature,0.678809217047325,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+clean,3,component_sign_literature,0.5816326530612245,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+clean,4,curl_with_omega,0.5204081632653061,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+clean,5,curl_with_curl_u,0.5204081632653061,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+layer5,1,vector_shear_gradient_literature,0.7202047287742196,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+layer5,2,vector_shear_gradient_direct,0.606979012731284,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+layer5,3,component_sign_literature,0.5612244897959184,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+layer5,4,curl_with_omega,0.5170068027210885,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+layer5,5,curl_with_curl_u,0.5170068027210885,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+analysis,1,vector_shear_gradient_direct,0.7526283131060589,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+analysis,2,vector_shear_gradient_literature,0.6729238456899196,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+analysis,3,component_sign_literature,0.5612244897959183,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+analysis,4,curl_with_omega,0.5238095238095238,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。
+analysis,5,curl_with_curl_u,0.5238095238095238,Nature-style 证据排名：component sign、vector direction、curl/chirality 都可作为 Pxy 与 mechanical texture 的定性对应，不等同于幅值相关。

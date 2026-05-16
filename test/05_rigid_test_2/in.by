@@ -1,0 +1,355 @@
+# =========================================================
+# Twisted BaTiO3 bilayer: Case 03, COM-distance control
+# LAMMPS 2021-compatible compact version
+#
+# Main purpose:
+# - Use upper/lower COM-distance control as the main interface-coupling loading path.
+# - Keep the old path dump for compatibility.
+# - Add a separate tensor_dump/ folder for raw kinematics + per-atom virial tensor.
+#
+# Notes:
+# - This is NOT fixed-pressure loading.
+# - c_stress[1:6] from stress/atom are raw per-atom virial components:
+#   xx yy zz xy xz yz. They are not volume-normalized local Cauchy stresses.
+# - Local strain tensors should be reconstructed in post-processing from
+#   xu/yu/zu or c_dis[1:3] on Ti-centered grids.
+# - Only first opening (+SEP_STEP_A) is kept here. Large separation can be
+#   added later, but should be treated as a coupling-failure boundary.
+# =========================================================
+
+# ------------------------ INITIALIZATION ----------------------------
+units           metal
+dimension       3
+boundary        p p f
+atom_style      full
+atom_modify     map yes
+
+timestep        0.0001
+
+variable DATAIN string atomic.data
+variable CASE   string twist_bto_C_com_distance
+
+variable ZLOBOX equal 0.0
+variable ZHIBOX equal 130.0
+
+# ------------------------ PATH PARAMETERS ----------------------------
+variable COMPRESS_TOTAL_A equal 1.0
+variable KCOMP_COM        equal 200.0
+
+# Formal run settings.
+# Compression hold and P0 hold are kept relatively long to stabilize/read out
+# loading-induced polarization redistribution and residual memory.
+variable RAMP_LOAD_STEPS   equal 30000
+variable HOLD_COMP_STEPS   equal 50000
+variable RAMP_UNLOAD_STEPS equal 30000
+variable HOLD_P0_STEPS     equal 50000
+
+# Only first opening is retained in this compact version.
+variable SEP_STEP_A      equal 2.0
+# Only one small first-opening step is retained as a crossover check.
+# Large separation is intentionally removed from the default formal run.
+variable SEP_RAMP_STEPS  equal 20000
+variable SEP_HOLD_STEPS  equal 30000
+variable KSEP_COM        equal 200.0
+
+variable Tstart equal 5.0
+variable Tstop  equal 5.0
+variable Tdamp  equal 0.05
+
+# Formal output frequency.
+variable THERMO          equal 1000
+variable DUMPINT         equal 5000
+variable TENSOR_DUMPINT  equal 5000
+variable TENSOR_DIR      string tensor_dump
+shell mkdir -p ${TENSOR_DIR}
+
+# Absolute step offsets after reset_timestep 0.
+variable STEP_LOAD_START   equal 0
+variable STEP_UNLOAD_START equal v_RAMP_LOAD_STEPS+v_HOLD_COMP_STEPS
+variable STEP_P0_START     equal v_STEP_UNLOAD_START+v_RAMP_UNLOAD_STEPS
+variable STEP_OPEN_START   equal v_STEP_P0_START+v_HOLD_P0_STEPS
+
+# ------------------------ FORCE FIELD ----------------------------
+dielectric      1.5
+pair_style      born/coul/dsf/cs 0.1 8.0 10.0
+bond_style      class2
+special_bonds   coul 0.0 1.0 1.0
+
+fix csinfo all property/atom i_CSID
+read_data ${DATAIN} fix csinfo NULL CS-Info
+change_box all z final ${ZLOBOX} ${ZHIBOX} units box
+
+pair_coeff * * 0.0 1.000 0.0 0.0 0.0
+pair_coeff 2 6 1061.30 0.3740 0.0 0.0 0.0
+pair_coeff 4 6 3769.93 0.2558 0.0 0.0 0.0
+pair_coeff 6 6 4740.00 0.2809 0.0 160.0 0.0
+pair_modify table 0
+
+bond_coeff 1 0.0 125.9 0.0 0.0
+bond_coeff 2 0.0 161.0 0.0 20.83
+bond_coeff 3 0.0 15.5 0.0 166.67
+
+# ----------------------- GROUPS ----------------------------
+group Bacore  type 1
+group Bashell type 2
+group Ticore  type 3
+group Tishell type 4
+group Ocore   type 5
+group Oshell  type 6
+
+group cores  type 1 3 5
+group shells type 2 4 6
+group BTO    type 1 2 3 4 5 6
+
+region lowerReg block INF INF INF INF INF 50.0 units box
+region upperReg block INF INF INF INF 50.0 INF units box
+
+group lower region lowerReg
+group upper region upperReg
+group lowerCore intersect lower cores
+group upperCore intersect upper cores
+
+# Surface groups are monitors only; not used for loading in case 03.
+variable ZBOT_SURF_MAX equal 33.0
+variable ZTOP_SURF_MIN equal 66.0
+region botSurfReg block INF INF INF INF INF ${ZBOT_SURF_MAX} units box
+region topSurfReg block INF INF INF INF ${ZTOP_SURF_MIN} INF units box
+group botSurfAtoms region botSurfReg
+group topSurfAtoms region topSurfReg
+
+# ----------------------- NEIGHBOR / COMM ----------------------------
+neighbor        2.0 bin
+comm_modify     vel yes cutoff 15.0
+neigh_modify    delay 0 every 1 check yes
+
+# ------------------------ COMPUTES AND VARIABLES -------------------------------
+compute myKE all ke/atom
+compute myPE all pe/atom
+compute stress all stress/atom NULL virial
+
+compute Tcs all temp/cs cores shells
+compute dis all displace/atom
+compute thermo_press_lmp all pressure Tcs
+compute cTop upper com
+compute cBot lower com
+
+thermo_modify temp Tcs press thermo_press_lmp lost error
+
+# Per-atom von Mises proxy from raw stress/atom components.
+variable Mise atom (1/sqrt(2))*sqrt((c_stress[1]-c_stress[2])*(c_stress[1]-c_stress[2])+(c_stress[3]-c_stress[2])*(c_stress[3]-c_stress[2])+(c_stress[1]-c_stress[3])*(c_stress[1]-c_stress[3])+6*(c_stress[4]*c_stress[4]+c_stress[5]*c_stress[5]+c_stress[6]*c_stress[6]))
+
+# Geometry monitors.
+variable zTopCOM   equal c_cTop[3]
+variable zBotCOM   equal c_cBot[3]
+variable sepCOM    equal v_zTopCOM-v_zBotCOM
+variable zUpperMin equal bound(upper,zmin)
+variable zLowerMax equal bound(lower,zmax)
+variable gapSurf   equal v_zUpperMin-v_zLowerMax
+variable Axy       equal lx*ly
+variable NupperCore equal count(upperCore)
+variable NlowerCore equal count(lowerCore)
+
+# LAMMPS 2021 compatibility:
+# Do not use ${lx}, ${ly}, ${lz} directly inside fix print.
+# They are thermo keywords, not user-defined variables.
+variable StepNow equal step
+variable TempNow equal c_Tcs
+variable PxxNow  equal pxx
+variable PyyNow  equal pyy
+variable PzzNow  equal pzz
+variable PxyNow  equal pxy
+variable PxzNow  equal pxz
+variable PyzNow  equal pyz
+variable LxNow   equal lx
+variable LyNow   equal ly
+variable LzNow   equal lz
+
+thermo ${THERMO}
+thermo_style custom step temp ke pe etotal press pxx pyy pzz pxy pxz pyz v_sepCOM v_gapSurf v_Axy v_NupperCore v_NlowerCore lx ly lz
+thermo_modify temp Tcs press thermo_press_lmp lost error
+
+run 0
+print "COM-distance check: NupperCore=${NupperCore}, NlowerCore=${NlowerCore}."
+
+write_data    ${CASE}_start.data pair ij
+write_restart ${CASE}_start.restart
+
+# ------------------------ SMALL PRE-RELAXATION ----------------------------
+fix teth shells spring/self 0.05
+fix_modify teth energy yes
+
+min_style cg
+min_modify dmax 0.00010 line quadratic
+minimize 0.0 1.0e-6 3000 30000
+
+unfix teth
+run 0
+
+write_data    ${CASE}_prerelax.data pair ij
+write_restart ${CASE}_prerelax.restart
+
+# Reset timestep and displacement reference after pre-relaxation.
+reset_timestep 0
+uncompute dis
+compute dis all displace/atom
+
+# ------------------------ DUMPS ----------------------------
+# Old full-path dump for compatibility.
+dump dpath all custom ${DUMPINT} ${CASE}_Path.*.dump &
+    id mol type q x y z fx fy fz &
+    c_dis[1] c_dis[2] c_dis[3] c_dis[4] &
+    c_myKE c_myPE v_Mise
+
+dump_modify dpath sort id
+
+# New tensor/raw-kinematics dump for mechanism post-processing.
+dump dtensor all custom ${TENSOR_DUMPINT} ${TENSOR_DIR}/${CASE}_Tensor.*.dump &
+    id mol type q &
+    x y z xu yu zu ix iy iz &
+    fx fy fz &
+    c_dis[1] c_dis[2] c_dis[3] c_dis[4] &
+    c_stress[1] c_stress[2] c_stress[3] c_stress[4] c_stress[5] c_stress[6] &
+    c_myKE c_myPE v_Mise
+
+dump_modify dtensor sort id
+
+# ------------------------ DYNAMICS ----------------------------
+velocity all create ${Tstart} 12345 mom yes rot no dist gaussian bias yes temp Tcs
+velocity all scale ${Tstart} temp Tcs
+
+fix fmom all momentum 1000 linear 1 1 1
+fix nvt all nvt temp ${Tstart} ${Tstop} ${Tdamp} drag 1
+fix_modify nvt temp Tcs
+
+run 0
+
+# Freeze post-pre-relax upper-lower COM separation as loading reference.
+variable SEP0_LOAD equal ${sepCOM}
+print "COM compression reference: SEP0_LOAD=${SEP0_LOAD} A."
+print "Target COM-separation reduction: ${COMPRESS_TOTAL_A} A."
+
+# Global time series. epsCOM is a COM-distance strain proxy, not a strain tensor.
+variable epsCOM equal (v_SEP0_LOAD-v_sepCOM)/v_SEP0_LOAD
+
+fix ftensor all print ${TENSOR_DUMPINT} &
+    "${StepNow} ${TempNow} ${PxxNow} ${PyyNow} ${PzzNow} ${PxyNow} ${PxzNow} ${PyzNow} ${sepCOM} ${gapSurf} ${epsCOM} ${LxNow} ${LyNow} ${LzNow}" &
+    file ${TENSOR_DIR}/${CASE}_global_tensor_timeseries.dat &
+    screen no &
+    title "step temp pxx pyy pzz pxy pxz pyz sepCOM gapSurf epsCOM lx ly lz"
+
+write_data    ${CASE}_path_initial.data pair ij
+write_restart ${CASE}_path_initial.restart
+
+# ------------------------ STAGE 1: COM-DISTANCE COMPRESSION RAMP ----------------------------
+variable sepTargetLoad equal v_SEP0_LOAD-v_COMPRESS_TOTAL_A*(step-v_STEP_LOAD_START)/v_RAMP_LOAD_STEPS
+variable sepErrorLoad  equal v_sepTargetLoad-v_sepCOM
+variable FupLoad       equal v_KCOMP_COM*v_sepErrorLoad/v_NupperCore
+variable FloLoad       equal -v_KCOMP_COM*v_sepErrorLoad/v_NlowerCore
+
+print "Stage 1: COM-distance compression ramp."
+fix compUp upperCore addforce 0.0 0.0 v_FupLoad
+fix compLo lowerCore addforce 0.0 0.0 v_FloLoad
+run ${RAMP_LOAD_STEPS}
+run 0
+
+write_data    ${CASE}_compressed.data pair ij
+write_restart ${CASE}_compressed.restart
+
+unfix compUp
+unfix compLo
+
+# ------------------------ STAGE 2: HOLD COMPRESSED COM DISTANCE ----------------------------
+variable sepTargetComp equal v_SEP0_LOAD-v_COMPRESS_TOTAL_A
+variable sepErrorComp  equal v_sepTargetComp-v_sepCOM
+variable FupComp       equal v_KCOMP_COM*v_sepErrorComp/v_NupperCore
+variable FloComp       equal -v_KCOMP_COM*v_sepErrorComp/v_NlowerCore
+
+print "Stage 2: hold compressed COM distance."
+fix compUp upperCore addforce 0.0 0.0 v_FupComp
+fix compLo lowerCore addforce 0.0 0.0 v_FloComp
+run ${HOLD_COMP_STEPS}
+run 0
+
+write_data    ${CASE}_compressed_hold.data pair ij
+write_restart ${CASE}_compressed_hold.restart
+
+unfix compUp
+unfix compLo
+
+# ------------------------ STAGE 3: UNLOAD BACK TO REFERENCE COM DISTANCE ----------------------------
+variable sepTargetUnload equal v_SEP0_LOAD-v_COMPRESS_TOTAL_A+v_COMPRESS_TOTAL_A*(step-v_STEP_UNLOAD_START)/v_RAMP_UNLOAD_STEPS
+variable sepErrorUnload  equal v_sepTargetUnload-v_sepCOM
+variable FupUnload       equal v_KCOMP_COM*v_sepErrorUnload/v_NupperCore
+variable FloUnload       equal -v_KCOMP_COM*v_sepErrorUnload/v_NlowerCore
+
+print "Stage 3: unload COM distance back to reference."
+fix compUp upperCore addforce 0.0 0.0 v_FupUnload
+fix compLo lowerCore addforce 0.0 0.0 v_FloUnload
+run ${RAMP_UNLOAD_STEPS}
+run 0
+
+write_data    ${CASE}_unload_to_P0.data pair ij
+write_restart ${CASE}_unload_to_P0.restart
+
+unfix compUp
+unfix compLo
+
+# ------------------------ STAGE 4: FREE P0 HOLD ----------------------------
+print "Stage 4: free P0 hold after releasing COM-compression forces."
+run ${HOLD_P0_STEPS}
+run 0
+
+write_data    ${CASE}_P0_hold.data pair ij
+write_restart ${CASE}_P0_hold.restart
+
+# ------------------------ STAGE 5: FIRST OPENING ONLY ----------------------------
+# First opening is useful as a crossover check. Do not treat it as proof of
+# the same buried-interface model.
+variable SEP0_OPEN equal ${sepCOM}
+print "First-opening reference: SEP0_OPEN=${SEP0_OPEN} A."
+
+variable sepTargetOpenRamp equal v_SEP0_OPEN+v_SEP_STEP_A*(step-v_STEP_OPEN_START)/v_SEP_RAMP_STEPS
+variable sepErrorOpenRamp  equal v_sepTargetOpenRamp-v_sepCOM
+variable FupOpenRamp       equal v_KSEP_COM*v_sepErrorOpenRamp/v_NupperCore
+variable FloOpenRamp       equal -v_KSEP_COM*v_sepErrorOpenRamp/v_NlowerCore
+
+print "Stage 5a: first opening ramp to SEP0_OPEN+SEP_STEP_A."
+fix sepUp upperCore addforce 0.0 0.0 v_FupOpenRamp
+fix sepLo lowerCore addforce 0.0 0.0 v_FloOpenRamp
+run ${SEP_RAMP_STEPS}
+run 0
+unfix sepUp
+unfix sepLo
+
+variable sepTargetOpenHold equal v_SEP0_OPEN+v_SEP_STEP_A
+variable sepErrorOpenHold  equal v_sepTargetOpenHold-v_sepCOM
+variable FupOpenHold       equal v_KSEP_COM*v_sepErrorOpenHold/v_NupperCore
+variable FloOpenHold       equal -v_KSEP_COM*v_sepErrorOpenHold/v_NlowerCore
+
+print "Stage 5b: hold at first opening."
+fix sepUp upperCore addforce 0.0 0.0 v_FupOpenHold
+fix sepLo lowerCore addforce 0.0 0.0 v_FloOpenHold
+run ${SEP_HOLD_STEPS}
+run 0
+
+write_data    ${CASE}_first_opening_hold.data pair ij
+write_restart ${CASE}_first_opening_hold.restart
+
+unfix sepUp
+unfix sepLo
+
+# ------------------------ END ----------------------------
+unfix ftensor
+unfix nvt
+unfix fmom
+
+undump dpath
+undump dtensor
+
+write_data    ${CASE}_end.data pair ij
+write_restart ${CASE}_end.restart
+
+print "Completed compact Case 03 COM-distance control."
+print "Tensor/raw-kinematics dump written to ${TENSOR_DIR}/."
+
+quit

@@ -1,0 +1,22 @@
+group,rank,pair,median_enrichment,interpretation
+clean,1,Pxy_vs_grad_h_lower,2.11734693877551,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+clean,2,Pxy_vs_grad_h_nearest,2.0408163265306123,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+clean,3,Pxy_vs_grad_h_best,2.0408163265306123,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+clean,4,Pxy_vs_grad_h_upper,1.7857142857142856,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+clean,5,Pxy_vs_omega,1.1989795918367347,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+clean,6,Pxy_vs_curl_u,1.1989795918367347,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+clean,7,Pxy_vs_shear_gradient,0.9183673469387755,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,1,Pxy_vs_shear_gradient,0.22959183673469388,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,2,Pxy_vs_omega,0.22959183673469388,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,3,Pxy_vs_curl_u,0.22959183673469388,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,4,Pxy_vs_grad_h_upper,0.0,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,5,Pxy_vs_grad_h_nearest,0.0,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,6,Pxy_vs_grad_h_lower,0.0,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+layer5,7,Pxy_vs_grad_h_best,0.0,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,1,Pxy_vs_grad_h_upper,1.7091836734693877,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,2,Pxy_vs_grad_h_best,1.7091836734693877,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,3,Pxy_vs_grad_h_nearest,1.5816326530612244,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,4,Pxy_vs_grad_h_lower,1.454081632653061,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,5,Pxy_vs_omega,1.1479591836734695,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,6,Pxy_vs_curl_u,1.1479591836734695,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。
+analysis,7,Pxy_vs_shear_gradient,1.0459183673469388,这是位置共定位排名，不是因果证明；若 shear-gradient 排名不高，说明当前数据不支持把 Pxy 简化为剪切应变梯度单机制。

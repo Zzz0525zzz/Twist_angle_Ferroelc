@@ -1,0 +1,6 @@
+topic,support_level,key_evidence,interpretation,caution
+Pxy redistribution in clean layers,中等偏强,P0_hold clean |dPxy|=0.04173 C/m^2; analysis layers=0.08839,clean layers 存在可测的 Pxy 重分布，适合作为 readout 响应层。,不能简化为单点线性 scalar relation。
+Pz vertical channel,需要重点加强,P0_hold clean |dPz|=0.1404 C/m^2; layer5 |dPz|=0.5103,Pz 反映 normal/vertical geometry channel，应与 Pxy 并列分析。,后续应检查 dPz 与 uz/grad_uz/local gap 的阶段协同。
+Layer 5 Pxy background + redistribution,强,P0_hold layer5/clean |dPxy| ratio=12.3,layer 5 与 clean layers 有数量级差异，应作为 background + redistribution 层。,不要把 layer 5 当作 clean readout layer。
+Layer 5 coupled Pxy-Pz response,中等偏强,P0_hold layer5/clean |dPz| ratio=3.64,layer 5 不只是面内 Pxy 特殊，也表现出强 Pz/vertical-channel 重排。,需要排除局域 cell reconstruction 或 hold relaxation artifact。
+Clean-layer Pz residual,中等,clean dPz P0/compressed=4.04; grad_uz P0/compressed=2.02,clean layers 的 Pz 是否在 P0_hold 后继续增强，需要与 vertical geometry 同步检查。,这是下一轮提高机理支撑度的关键。

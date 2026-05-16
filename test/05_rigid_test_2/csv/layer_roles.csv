@@ -1,0 +1,9 @@
+layer,role
+2,weak inheritance/boundary；次级检查层
+3,medium inheritance；辅助证据层
+4,clean response/readout layer；主机制证据层
+5,background + redistribution layer；重要但不 clean
+6,clean response/readout layer；主机制证据层
+7,clean response/readout layer；主机制证据层
+8,medium inheritance；辅助证据层
+9,weak inheritance/boundary；次级检查层

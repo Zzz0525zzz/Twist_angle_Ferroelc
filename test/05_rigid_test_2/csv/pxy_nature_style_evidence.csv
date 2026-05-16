@@ -1,0 +1,81 @@
+step,stage,layer,test,template,metric,value,n,extra,verdict
+80000,compressed_hold,2,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5544217687074829,147,x_pref=opposite; y_pref=same,component 符号对应较弱
+80000,compressed_hold,2,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.347,curl/chirality 对应较弱
+80000,compressed_hold,2,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.347,curl/chirality 对应较弱
+80000,compressed_hold,2,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.6419839072913226,147,signed_mean=-0.02401,方向对应中等
+80000,compressed_hold,2,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.70467629705558,147,signed_mean=-0.005161,方向对应较强
+80000,compressed_hold,3,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5986394557823129,147,x_pref=same; y_pref=same,component 符号对应较弱
+80000,compressed_hold,3,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5374149659863945,147,preferred=opposite; curl_top_enrichment=2.245,curl/chirality 对应较弱
+80000,compressed_hold,3,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5374149659863945,147,preferred=opposite; curl_top_enrichment=2.245,curl/chirality 对应较弱
+80000,compressed_hold,3,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.8364789587141452,147,signed_mean=0.0385,方向对应较强
+80000,compressed_hold,3,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.8039862421424976,147,signed_mean=0.1913,方向对应较强
+80000,compressed_hold,4,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5748299319727891,147,x_pref=same; y_pref=same,component 符号对应较弱
+80000,compressed_hold,4,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.245,curl/chirality 对应较弱
+80000,compressed_hold,4,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.245,curl/chirality 对应较弱
+80000,compressed_hold,4,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.9383925195325514,147,signed_mean=0.03928,方向对应较强
+80000,compressed_hold,4,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6916744754217653,147,signed_mean=0.1735,方向对应中等
+80000,compressed_hold,5,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5748299319727892,147,x_pref=opposite; y_pref=same,component 符号对应较弱
+80000,compressed_hold,5,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.245,curl/chirality 对应较弱
+80000,compressed_hold,5,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.245,curl/chirality 对应较弱
+80000,compressed_hold,5,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.5692386393944642,147,signed_mean=-0.005687,方向对应中等
+80000,compressed_hold,5,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.8180398602707811,147,signed_mean=0.09602,方向对应较强
+80000,compressed_hold,6,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5374149659863945,147,x_pref=opposite; y_pref=same,component 符号对应较弱
+80000,compressed_hold,6,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=opposite; curl_top_enrichment=2.449,curl/chirality 对应较弱
+80000,compressed_hold,6,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=opposite; curl_top_enrichment=2.449,curl/chirality 对应较弱
+80000,compressed_hold,6,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.5723056233973141,147,signed_mean=-0.07962,方向对应中等
+80000,compressed_hold,6,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.7110750571298801,147,signed_mean=-0.1531,方向对应较强
+80000,compressed_hold,7,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5884353741496599,147,x_pref=opposite; y_pref=opposite,component 符号对应较弱
+80000,compressed_hold,7,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=opposite; curl_top_enrichment=2.5,curl/chirality 对应较弱
+80000,compressed_hold,7,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=opposite; curl_top_enrichment=2.5,curl/chirality 对应较弱
+80000,compressed_hold,7,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.6292603474089993,147,signed_mean=0.05506,方向对应中等
+80000,compressed_hold,7,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.5701672080315828,147,signed_mean=-0.251,方向对应中等
+80000,compressed_hold,8,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5476190476190477,147,x_pref=same; y_pref=opposite,component 符号对应较弱
+80000,compressed_hold,8,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.449,curl/chirality 对应较弱
+80000,compressed_hold,8,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5238095238095238,147,preferred=opposite; curl_top_enrichment=2.449,curl/chirality 对应较弱
+80000,compressed_hold,8,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.6469747934328347,147,signed_mean=-0.1425,方向对应中等
+80000,compressed_hold,8,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.5789897082231139,147,signed_mean=-0.1572,方向对应中等
+80000,compressed_hold,9,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5476190476190476,147,x_pref=same; y_pref=opposite,component 符号对应较弱
+80000,compressed_hold,9,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5170068027210885,147,preferred=opposite; curl_top_enrichment=2.449,curl/chirality 对应较弱
+80000,compressed_hold,9,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5170068027210885,147,preferred=opposite; curl_top_enrichment=2.449,curl/chirality 对应较弱
+80000,compressed_hold,9,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.8276956341950972,147,signed_mean=-0.008061,方向对应较强
+80000,compressed_hold,9,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6799037327069544,147,signed_mean=-0.01964,方向对应中等
+160000,P0_hold,2,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5714285714285714,147,x_pref=same; y_pref=same,component 符号对应较弱
+160000,P0_hold,2,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=same; curl_top_enrichment=3.01,curl/chirality 对应较弱
+160000,P0_hold,2,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=same; curl_top_enrichment=3.01,curl/chirality 对应较弱
+160000,P0_hold,2,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.7438991907609369,147,signed_mean=-0.1124,方向对应较强
+160000,P0_hold,2,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.7291895404981612,147,signed_mean=0.1307,方向对应较强
+160000,P0_hold,3,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5510204081632653,147,x_pref=same; y_pref=same,component 符号对应较弱
+160000,P0_hold,3,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5306122448979592,147,preferred=same; curl_top_enrichment=3.01,curl/chirality 对应较弱
+160000,P0_hold,3,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5306122448979592,147,preferred=same; curl_top_enrichment=3.01,curl/chirality 对应较弱
+160000,P0_hold,3,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.8202021242024519,147,signed_mean=-0.03949,方向对应较强
+160000,P0_hold,3,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6631219795949362,147,signed_mean=0.1224,方向对应中等
+160000,P0_hold,4,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.6054421768707483,147,x_pref=same; y_pref=same,component 符号对应中等
+160000,P0_hold,4,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5170068027210885,147,preferred=same; curl_top_enrichment=3.01,curl/chirality 对应较弱
+160000,P0_hold,4,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5170068027210885,147,preferred=same; curl_top_enrichment=3.01,curl/chirality 对应较弱
+160000,P0_hold,4,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.8852853561717324,147,signed_mean=-0.06534,方向对应较强
+160000,P0_hold,4,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.5396526384952363,147,signed_mean=0.1485,方向对应较弱
+160000,P0_hold,5,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5476190476190476,147,x_pref=opposite; y_pref=opposite,component 符号对应较弱
+160000,P0_hold,5,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=same; curl_top_enrichment=3.214,curl/chirality 对应较弱
+160000,P0_hold,5,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5102040816326531,147,preferred=same; curl_top_enrichment=3.214,curl/chirality 对应较弱
+160000,P0_hold,5,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.6447193860681038,147,signed_mean=-0.06508,方向对应中等
+160000,P0_hold,5,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6223695972776581,147,signed_mean=-0.1073,方向对应中等
+160000,P0_hold,6,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5986394557823129,147,x_pref=opposite; y_pref=same,component 符号对应较弱
+160000,P0_hold,6,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.214,curl/chirality 对应较弱
+160000,P0_hold,6,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.214,curl/chirality 对应较弱
+160000,P0_hold,6,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.4470643202642045,147,signed_mean=0.1066,方向对应较弱
+160000,P0_hold,6,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.7732665472488945,147,signed_mean=0.05337,方向对应较强
+160000,P0_hold,7,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5680272108843537,147,x_pref=opposite; y_pref=opposite,component 符号对应较弱
+160000,P0_hold,7,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.214,curl/chirality 对应较弱
+160000,P0_hold,7,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.214,curl/chirality 对应较弱
+160000,P0_hold,7,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.7613574354511808,147,signed_mean=0.08165,方向对应较强
+160000,P0_hold,7,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6659439586728848,147,signed_mean=-0.1355,方向对应中等
+160000,P0_hold,8,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5034013605442177,147,x_pref=opposite; y_pref=opposite,component 符号对应较弱
+160000,P0_hold,8,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.163,curl/chirality 对应较弱
+160000,P0_hold,8,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.163,curl/chirality 对应较弱
+160000,P0_hold,8,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.7693167896446002,147,signed_mean=0.09223,方向对应较强
+160000,P0_hold,8,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6376187654584645,147,signed_mean=-0.001922,方向对应中等
+160000,P0_hold,9,component_sign_literature,dPx~depsxy_dy and dPy~depsxy_dx,mean_best_sign_fraction_high_dPxy,0.5102040816326531,147,x_pref=same; y_pref=same,component 符号对应较弱
+160000,P0_hold,9,curl_with_curl_u,curl_u,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.163,curl/chirality 对应较弱
+160000,P0_hold,9,curl_with_omega,omega,chirality_best_sign_fraction_and_top_overlap,0.5850340136054422,147,preferred=opposite; curl_top_enrichment=3.163,curl/chirality 对应较弱
+160000,P0_hold,9,vector_shear_gradient_direct,shear_gradient_direct,median_abs_cos_high_dPxy,0.8274897478164206,147,signed_mean=0.01487,方向对应较强
+160000,P0_hold,9,vector_shear_gradient_literature,shear_gradient_literature,median_abs_cos_high_dPxy,0.6350182754005667,147,signed_mean=-0.02492,方向对应中等
